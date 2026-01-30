@@ -32,12 +32,20 @@ export interface User {
   password?: string;
 }
 
+export enum UnitCategory {
+  LIQUID = 'Liquid (ml/L)',
+  SOLID = 'Solid (mg/kg)',
+  COUNT = 'Count (pcs/dozen)',
+  OTHER = 'Other'
+}
+
 export interface Item {
   id: string;
   shopId: string;
   name: string;
   price: number;
   unit: string;
+  unitCategory: UnitCategory;
   image: string;
 }
 
@@ -68,14 +76,27 @@ export interface Order {
   customerId: string;
   items: OrderItem[];
   subtotal: number;
-  deliveryCharges: number;
+  deliveryCharges: number; // Sum of base + service
   total: number;
   status: OrderStatus;
   createdAt: number;
+  editableUntil?: number; // Timestamp until which the order can be edited
+  estimatedDeliveryTime?: string;
   assignedPurchaserId?: string;
   assignedRiderId?: string;
 }
 
+export interface SectorTiming {
+  baseCharge: number; // Added base delivery charge
+  baseMin: number;
+  baseMax: number;
+  additionalPerItem: number;
+  threshold: number;
+}
+
 export interface AppConfig {
   logo: string;
+  editWindowSeconds: number; // Configurable edit timer
+  deliveryTimings: Record<string, SectorTiming>;
+  streetCharges: Record<string, number>; // Maps "Sector|Street" to base price
 }

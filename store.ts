@@ -1,141 +1,182 @@
 
 import { useState, useEffect } from 'react';
-import { User, Shop, Order, AppConfig, UserRole, Sector, OrderStatus, Item } from './types';
+import { User, Shop, Order, AppConfig, UserRole, Sector, Item } from './types';
 import { INITIAL_SHOPS } from './constants';
+import { db } from './services/api';
 
-const STORAGE_KEY = 'ji_kya_chahiye_data';
+const COLLECTIONS = {
+  USERS: 'users',
+  SHOPS: 'shops',
+  ORDERS: 'orders',
+  CONFIG: 'config',
+  WISHLIST: 'wishlist'
+};
 
-interface AppData {
-  users: User[];
-  shops: Shop[];
-  orders: Order[];
-  config: AppConfig;
-  currentUser: User | null;
-  wishlist: Record<string, Item[]>; // Keyed by userId
-}
-
-const initialData: AppData = {
-  users: [
-    {
-      id: 'admin-1',
-      fullName: 'Super Admin',
-      mobileNumber: 'admin',
-      role: UserRole.ADMIN,
-      address: {
-        sector: Sector.SECTOR_1,
-        houseNumber: '1',
-        streetNumber: '1'
-      }
-    }
-  ],
-  shops: INITIAL_SHOPS,
-  orders: [],
-  config: {
-    logo: 'https://via.placeholder.com/150?text=Ji+Kya+Chahiye'
-  },
-  currentUser: null,
-  wishlist: {}
+const initialConfig: AppConfig = {
+  logo: 'https://via.placeholder.com/150?text=Ji+Kya+Chahiye',
+  editWindowSeconds: 45,
+  streetCharges: {},
+  deliveryTimings: {
+    'Sectors 1 & 2': { baseCharge: 100, baseMin: 10, baseMax: 15, threshold: 4, additionalPerItem: 2 },
+    'Sector 3': { baseCharge: 150, baseMin: 15, baseMax: 20, threshold: 4, additionalPerItem: 3 },
+    'Sector 4': { baseCharge: 200, baseMin: 20, baseMax: 30, threshold: 4, additionalPerItem: 4 },
+    'VIP Sectors': { baseCharge: 200, baseMin: 20, baseMax: 30, threshold: 4, additionalPerItem: 4 },
+  }
 };
 
 export const useStore = () => {
-  const [data, setData] = useState<AppData>(() => {
-    const saved = localStorage.getItem(STORAGE_KEY);
-    return saved ? JSON.parse(saved) : initialData;
-  });
+  const [users, setUsers] = useState<User[]>([]);
+  const [shops, setShops] = useState<Shop[]>([]);
+  const [orders, setOrders] = useState<Order[]>([]);
+  const [config, setConfig] = useState<AppConfig>(initialConfig);
+  const [wishlist, setWishlist] = useState<Record<string, Item[]>>({});
+  const [currentUser, setCurrentUser] = useState<User | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [syncing, setSyncing] = useState(false);
 
   useEffect(() => {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
-  }, [data]);
+    let mounted = true;
 
-  const login = (mobile: string) => {
-    const user = data.users.find(u => u.mobileNumber === mobile);
-    if (user) {
-      setData(prev => ({ ...prev, currentUser: user }));
+    const init = async () => {
+      try {
+        // Setup subscriptions. The db.subscribe handles the initial fetch internally.
+        const unsubUsers = db.subscribe(COLLECTIONS.USERS, (data) => {
+          if (mounted) setUsers(data);
+        });
+        const unsubShops = db.subscribe(COLLECTIONS.SHOPS, (data) => {
+          if (mounted) setShops(data.length ? data : INITIAL_SHOPS);
+        });
+        const unsubOrders = db.subscribe(COLLECTIONS.ORDERS, (data) => {
+          if (mounted) setOrders(data.sort((a, b) => b.createdAt - a.createdAt));
+        });
+        const unsubConfig = db.subscribe(COLLECTIONS.CONFIG, (data) => {
+          if (mounted && data.length) setConfig(data[0] as AppConfig);
+        });
+
+        // Small delay to allow initial data to flow in
+        setTimeout(() => {
+          if (mounted) setLoading(false);
+        }, 1500);
+
+        return () => {
+          mounted = false;
+          unsubUsers();
+          unsubShops();
+          unsubOrders();
+          unsubConfig();
+        };
+      } catch (err) {
+        console.error("Store initialization failed:", err);
+        if (mounted) setLoading(false);
+      }
+    };
+
+    init();
+  }, []);
+
+  const login = async (mobile: string, password?: string) => {
+    setSyncing(true);
+    const user = users.find(u => u.mobileNumber === mobile);
+    if (user && user.password === password) {
+      setCurrentUser(user);
+      setSyncing(false);
       return true;
     }
+    setSyncing(false);
     return false;
   };
 
-  const logout = () => {
-    setData(prev => ({ ...prev, currentUser: null }));
-  };
+  const logout = () => setCurrentUser(null);
 
-  const signup = (user: User) => {
-    if (data.users.some(u => u.mobileNumber === user.mobileNumber)) return false;
-    setData(prev => ({ ...prev, users: [...prev.users, user], currentUser: user }));
+  const signup = async (user: User) => {
+    if (users.some(u => u.mobileNumber === user.mobileNumber)) return false;
+    
+    setSyncing(true);
+    const finalUser = {
+      ...user,
+      role: users.length === 0 ? UserRole.ADMIN : UserRole.CUSTOMER
+    };
+
+    await db.save(COLLECTIONS.USERS, finalUser.id, finalUser);
+    setCurrentUser(finalUser);
+    setSyncing(false);
     return true;
   };
 
-  const updateConfig = (config: Partial<AppConfig>) => {
-    setData(prev => ({ ...prev, config: { ...prev.config, ...config } }));
+  const updateConfig = async (newConfig: Partial<AppConfig>) => {
+    setSyncing(true);
+    const updated = { ...config, ...newConfig };
+    await db.save(COLLECTIONS.CONFIG, 'main_config', updated);
+    setSyncing(false);
   };
 
-  const addShop = (shop: Shop) => {
-    setData(prev => ({ ...prev, shops: [...prev.shops, shop] }));
+  const addShop = async (shop: Shop) => {
+    setSyncing(true);
+    await db.save(COLLECTIONS.SHOPS, shop.id, shop);
+    setSyncing(false);
   };
 
-  const updateShop = (shop: Shop) => {
-    setData(prev => ({ ...prev, shops: prev.shops.map(s => s.id === shop.id ? shop : s) }));
+  const updateShop = async (shop: Shop) => {
+    setSyncing(true);
+    await db.save(COLLECTIONS.SHOPS, shop.id, shop);
+    setSyncing(false);
   };
 
-  const deleteShop = (id: string) => {
-    setData(prev => ({ ...prev, shops: prev.shops.filter(s => s.id !== id) }));
+  const deleteShop = async (id: string) => {
+    setSyncing(true);
+    await db.remove(COLLECTIONS.SHOPS, id);
+    setSyncing(false);
   };
 
-  const placeOrder = (order: Order) => {
-    setData(prev => ({ ...prev, orders: [order, ...prev.orders] }));
+  const placeOrder = async (order: Order) => {
+    setSyncing(true);
+    await db.save(COLLECTIONS.ORDERS, order.id, order);
+    setSyncing(false);
   };
 
-  const updateOrder = (order: Order) => {
-    setData(prev => ({ ...prev, orders: prev.orders.map(o => o.id === order.id ? order : o) }));
+  const updateOrder = async (order: Order) => {
+    setSyncing(true);
+    await db.save(COLLECTIONS.ORDERS, order.id, order);
+    setSyncing(false);
   };
 
-  const deleteOrder = (id: string) => {
-    setData(prev => ({ ...prev, orders: prev.orders.filter(o => o.id !== id) }));
+  const deleteOrder = async (id: string) => {
+    setSyncing(true);
+    await db.remove(COLLECTIONS.ORDERS, id);
+    setSyncing(false);
   };
 
-  const deleteUser = (id: string) => {
-    setData(prev => ({ ...prev, users: prev.users.filter(u => u.id !== id) }));
+  const deleteUser = async (id: string) => {
+    setSyncing(true);
+    await db.remove(COLLECTIONS.USERS, id);
+    setSyncing(false);
   };
 
-  const toggleWishlist = (userId: string, item: Item) => {
-    setData(prev => {
-      const userWishlist = prev.wishlist[userId] || [];
-      const isExist = userWishlist.find(i => i.id === item.id);
-      const newWishlist = isExist 
-        ? userWishlist.filter(i => i.id !== item.id)
-        : [...userWishlist, item];
-      return {
-        ...prev,
-        wishlist: { ...prev.wishlist, [userId]: newWishlist }
-      };
-    });
+  const toggleWishlist = async (userId: string, item: Item) => {
+    setSyncing(true);
+    const userWishlist = wishlist[userId] || [];
+    const isExist = userWishlist.find(i => i.id === item.id);
+    const newWishlist = isExist 
+      ? userWishlist.filter(i => i.id !== item.id)
+      : [...userWishlist, item];
+    
+    await db.save(COLLECTIONS.WISHLIST, userId, { items: newWishlist });
+    setWishlist(prev => ({ ...prev, [userId]: newWishlist }));
+    setSyncing(false);
   };
 
-  const removeFromWishlist = (userId: string, itemId: string) => {
-    setData(prev => {
-      const userWishlist = prev.wishlist[userId] || [];
-      return {
-        ...prev,
-        wishlist: { ...prev.wishlist, [userId]: userWishlist.filter(i => i.id !== itemId) }
-      };
-    });
+  const removeFromWishlist = async (userId: string, itemId: string) => {
+    setSyncing(true);
+    const userWishlist = wishlist[userId] || [];
+    const newWishlist = userWishlist.filter(i => i.id !== itemId);
+    await db.save(COLLECTIONS.WISHLIST, userId, { items: newWishlist });
+    setWishlist(prev => ({ ...prev, [userId]: newWishlist }));
+    setSyncing(false);
   };
 
   return {
-    ...data,
-    login,
-    logout,
-    signup,
-    updateConfig,
-    addShop,
-    updateShop,
-    deleteShop,
-    placeOrder,
-    updateOrder,
-    deleteOrder,
-    deleteUser,
-    toggleWishlist,
-    removeFromWishlist
+    users, shops, orders, config, currentUser, wishlist, loading, syncing,
+    login, logout, signup, updateConfig, addShop, updateShop, deleteShop,
+    placeOrder, updateOrder, deleteOrder, deleteUser, toggleWishlist, removeFromWishlist
   };
 };

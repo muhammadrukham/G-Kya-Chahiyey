@@ -3,51 +3,42 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Ji Kya Chahiye - Shopping App</title>
-    <link rel="manifest" href="manifest.json">
+    <link rel="manifest" href="/manifest.json">
     <meta name="theme-color" content="#059669">
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Urdu:wght@400;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
-        body {
-            font-family: 'Inter', 'Noto Sans Urdu', sans-serif;
-            background-color: #f8fafc;
-        }
-        .urdu-font {
-            font-family: 'Noto Sans Urdu', sans-serif;
-        }
+      body {
+          font-family: 'Inter', 'Noto Sans Urdu', sans-serif;
+          margin: 0;
+          background-color: #f8fafc;
+          overflow-x: hidden;
+      }
+      .urdu-font {
+          font-family: 'Noto Sans Urdu', sans-serif;
+      }
+      * {
+          -webkit-overflow-scrolling: touch;
+      }
     </style>
 <script type="importmap">
 {
   "imports": {
+    "vite": "https://esm.sh/vite@^7.3.1",
+    "@vitejs/plugin-react": "https://esm.sh/@vitejs/plugin-react@^5.1.2",
+    "react-dom/": "https://esm.sh/react-dom@^19.2.4/",
     "react/": "https://esm.sh/react@^19.2.4/",
     "react": "https://esm.sh/react@^19.2.4",
-    "react-dom/": "https://esm.sh/react-dom@^19.2.4/"
+    "@supabase/supabase-js": "https://esm.sh/@supabase/supabase-js@^2.93.3"
   }
 }
 </script>
 </head>
-<body>
+<body class="bg-slate-50">
     <div id="root"></div>
-    <script>
-      // Simplified Service Worker registration to prevent construction errors in restricted sandboxes
-      if ('serviceWorker' in navigator) {
-        window.addEventListener('load', () => {
-          // Using a relative path is standard. If the environment restricts this (e.g. cross-origin iframe),
-          // the catch block will handle it without crashing the app.
-          navigator.serviceWorker.register('sw.js')
-            .then(reg => {
-              console.log('ServiceWorker registered successfully scope:', reg.scope);
-            })
-            .catch(err => {
-              // Gracefully log the failure. In some sandboxed development environments, 
-              // service workers are intentionally blocked.
-              console.warn('ServiceWorker registration skipped or failed:', err.message);
-            });
-        });
-      }
-    </script>
+    <script type="module" src="/index.tsx"></script>
 </body>
 </html>

@@ -1,0 +1,9 @@
+
+{
+  "appId": "com.jikyachahiye.app",
+  "appName": "Ji Kya Chahiye",
+  "webDir": "dist",
+  "server": {
+    "androidScheme": "https"
+  }
+}

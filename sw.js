@@ -1,24 +1,8 @@
 
-const CACHE_NAME = 'jkc-v1';
-const ASSETS = [
-  '/',
-  '/index.html',
-  '/index.tsx',
-  '/manifest.json'
-];
-
-self.addEventListener('install', (event) => {
-  event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => {
-      return cache.addAll(ASSETS);
-    })
-  );
+// Service worker disabled for native mobile build to prevent protocol errors
+self.addEventListener('install', () => {
+  self.skipWaiting();
 });
-
-self.addEventListener('fetch', (event) => {
-  event.respondWith(
-    caches.match(event.request).then((response) => {
-      return response || fetch(event.request);
-    })
-  );
+self.addEventListener('activate', () => {
+  return self.clients.claim();
 });

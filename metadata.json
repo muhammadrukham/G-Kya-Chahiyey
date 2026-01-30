@@ -1,7 +1,8 @@
 {
-  "name": "Copy of Ji Kya Chahiye (جی کیا چاہئیے)",
+  "name": "Ji Kya Chahiye (جی کیا چاہئیے)",
   "description": "A comprehensive multi-shop ordering platform for local sectors with advanced delivery logistics, customer dashboard, and admin management.",
   "requestFramePermissions": [
-    "camera"
+    "camera",
+    "geolocation"
   ]
 }
