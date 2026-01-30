@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { Order, OrderStatus, OrderItem, User, UserRole } from '../../types';
+import { Order, OrderStatus, OrderItem, User } from '../../types';
 
 interface OrderManagementProps {
   store: any;
@@ -15,7 +15,6 @@ const OrderManagement: React.FC<OrderManagementProps> = ({ store }) => {
       it.id === itemId ? { ...it, status } : it
     );
 
-    // Auto update order status if all items are processed
     const allProcessed = newItems.every((it: OrderItem) => it.status !== 'pending');
     let nextStatus = order.status;
     if (allProcessed && order.status === OrderStatus.PURCHASING) {
@@ -40,102 +39,91 @@ const OrderManagement: React.FC<OrderManagementProps> = ({ store }) => {
 
   return (
     <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <h2 className="text-2xl font-bold text-slate-800">Order Management</h2>
-        <div className="flex gap-4">
-          <div className="flex gap-3">
-             <span className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider text-amber-500 bg-amber-50 px-2 py-1 rounded-full"><span className="w-1.5 h-1.5 rounded-full bg-amber-500"></span> Pending</span>
-             <span className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider text-blue-500 bg-blue-50 px-2 py-1 rounded-full"><span className="w-1.5 h-1.5 rounded-full bg-blue-500"></span> Purchasing</span>
-             <span className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider text-emerald-500 bg-emerald-50 px-2 py-1 rounded-full"><span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span> Ready</span>
-          </div>
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+        <div>
+          <h2 className="text-2xl font-black text-slate-900 tracking-tight">Active Orders</h2>
+          <p className="text-xs text-slate-500 font-medium">Real-time incoming customer requests</p>
+        </div>
+        <div className="flex flex-wrap gap-2">
+           <span className="flex items-center gap-1.5 text-[9px] font-black uppercase tracking-widest text-amber-600 bg-amber-50 px-3 py-1.5 rounded-full border border-amber-100">Pending</span>
+           <span className="flex items-center gap-1.5 text-[9px] font-black uppercase tracking-widest text-blue-600 bg-blue-50 px-3 py-1.5 rounded-full border border-blue-100">Purchasing</span>
+           <span className="flex items-center gap-1.5 text-[9px] font-black uppercase tracking-widest text-emerald-600 bg-emerald-50 px-3 py-1.5 rounded-full border border-emerald-100">Ready</span>
         </div>
       </div>
 
-      <div className="space-y-5">
+      <div className="grid grid-cols-1 gap-5">
         {store.orders.map((order: Order) => {
           const customer = getCustomer(order.customerId);
           return (
-            <div key={order.id} className="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden hover:border-emerald-200 transition-colors">
-              <div className="p-5 bg-slate-50 border-b flex justify-between items-center">
-                <div className="flex gap-5 items-center">
-                  <div className="w-12 h-12 bg-white rounded-2xl flex items-center justify-center font-mono font-bold text-emerald-600 shadow-sm border border-emerald-50">
+            <div key={order.id} className="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden hover:border-emerald-200 transition-all">
+              <div className="p-4 md:p-5 bg-slate-50/50 border-b flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                <div className="flex gap-4 items-center">
+                  <div className="w-10 h-10 md:w-12 md:h-12 bg-white rounded-2xl flex items-center justify-center font-mono font-black text-emerald-600 shadow-sm border border-emerald-50 flex-shrink-0">
                     #{order.id.slice(-4)}
                   </div>
                   <div>
-                    <p className="font-bold text-slate-800 text-base">{customer?.fullName || 'Unknown User'}</p>
-                    <div className="flex items-center gap-2 text-xs text-slate-500">
+                    <p className="font-black text-slate-900 text-sm md:text-base leading-tight">{customer?.fullName || 'Guest'}</p>
+                    <div className="flex items-center gap-2 text-[10px] md:text-xs text-slate-500 mt-0.5">
                       <i className="fa-solid fa-location-dot text-emerald-500"></i>
-                      <span>{customer?.address.sector} • House {customer?.address.houseNumber}</span>
+                      <span>{customer?.address.sector} • St {customer?.address.streetNumber}</span>
                     </div>
                   </div>
                 </div>
-                <div className="flex gap-3 items-center">
+                <div className="flex w-full md:w-auto gap-2 items-center">
                   <select 
                     value={order.status}
                     onChange={(e) => changeOrderStatus(order.id, e.target.value as OrderStatus)}
-                    className="text-xs font-bold border rounded-xl px-3 py-2 bg-white focus:ring-2 focus:ring-emerald-500 outline-none"
+                    className="flex-1 md:flex-none text-[10px] font-black border rounded-xl px-4 py-2 bg-white focus:ring-2 focus:ring-emerald-500 outline-none uppercase tracking-widest"
                   >
                     {Object.values(OrderStatus).map(s => <option key={s} value={s}>{s}</option>)}
                   </select>
-                  <button onClick={() => deleteOrder(order.id)} className="text-slate-300 hover:text-red-500 p-2 transition-colors">
+                  <button onClick={() => deleteOrder(order.id)} className="text-slate-300 hover:text-red-500 p-2 transition-colors flex-shrink-0">
                     <i className="fa-solid fa-trash-can text-lg"></i>
                   </button>
                 </div>
               </div>
               
-              <div className="p-5">
-                <table className="w-full text-sm">
-                  <thead>
-                    <tr className="text-slate-400 text-left border-b border-slate-100">
-                      <th className="pb-3 font-bold uppercase text-[10px] tracking-wider">Product Description</th>
-                      <th className="pb-3 font-bold uppercase text-[10px] tracking-wider text-center">Qty / Unit</th>
-                      <th className="pb-3 font-bold uppercase text-[10px] tracking-wider text-right">Fulfillment</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-50">
-                    {order.items.map((it) => (
-                      <tr key={it.id} className="text-slate-700 hover:bg-slate-50/50 transition-colors">
-                        <td className="py-4">
-                          <div className="flex items-center gap-3">
-                            <div className={`w-2 h-2 rounded-full ${it.status === 'collected' ? 'bg-emerald-500' : it.status === 'unavailable' ? 'bg-red-400' : 'bg-slate-200'}`}></div>
-                            <span className="font-semibold text-slate-800">{it.name}</span>
+              <div className="p-4 md:p-5">
+                {/* Product List - Optimized for all screens */}
+                <div className="space-y-3">
+                   {order.items.map((it) => (
+                      <div key={it.id} className="flex items-center justify-between gap-4 p-3 rounded-2xl border border-slate-50 hover:bg-slate-50 transition-colors">
+                        <div className="flex items-center gap-3 min-w-0">
+                          <div className={`w-2 h-2 rounded-full flex-shrink-0 ${it.status === 'collected' ? 'bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]' : it.status === 'unavailable' ? 'bg-red-400' : 'bg-slate-200'}`}></div>
+                          <div className="min-w-0">
+                            <p className="font-black text-slate-800 text-xs truncate">{it.name}</p>
+                            <p className="text-[10px] text-slate-400 font-bold uppercase tracking-tight">{it.quantity} × {it.unit}</p>
                           </div>
-                        </td>
-                        <td className="py-4 text-center">
-                          <span className="bg-slate-100 text-slate-700 px-3 py-1 rounded-full font-bold text-xs">
-                             {it.quantity} × {it.unit}
-                          </span>
-                        </td>
-                        <td className="py-4 text-right">
+                        </div>
+                        <div className="flex gap-1.5 flex-shrink-0">
                           {order.status === OrderStatus.PENDING || order.status === OrderStatus.PURCHASING ? (
-                            <div className="flex gap-2 justify-end">
+                            <>
                               <button 
                                 onClick={() => updateItemStatus(order.id, it.id, 'collected')}
-                                className={`px-3 py-1.5 rounded-xl text-[10px] font-bold uppercase tracking-wider transition-all ${it.status === 'collected' ? 'bg-emerald-600 text-white shadow-lg shadow-emerald-100' : 'bg-emerald-100 text-emerald-700 hover:bg-emerald-200'}`}
-                              >Collect</button>
+                                className={`w-9 h-9 flex items-center justify-center rounded-xl transition-all ${it.status === 'collected' ? 'bg-emerald-600 text-white shadow-lg shadow-emerald-100' : 'bg-emerald-50 text-emerald-600 hover:bg-emerald-100'}`}
+                              ><i className="fa-solid fa-check text-xs"></i></button>
                               <button 
                                 onClick={() => updateItemStatus(order.id, it.id, 'unavailable')}
-                                className={`px-3 py-1.5 rounded-xl text-[10px] font-bold uppercase tracking-wider transition-all ${it.status === 'unavailable' ? 'bg-red-500 text-white shadow-lg shadow-red-100' : 'bg-red-100 text-red-700 hover:bg-red-200'}`}
-                              >Out</button>
-                            </div>
+                                className={`w-9 h-9 flex items-center justify-center rounded-xl transition-all ${it.status === 'unavailable' ? 'bg-red-500 text-white shadow-lg shadow-red-100' : 'bg-red-50 text-red-600 hover:bg-red-100'}`}
+                              ><i className="fa-solid fa-xmark text-xs"></i></button>
+                            </>
                           ) : (
-                            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest bg-slate-100 px-3 py-1.5 rounded-lg">Locked</span>
+                            <span className="text-[9px] font-black text-slate-300 uppercase tracking-widest bg-slate-50 px-2 py-1 rounded-lg">Locked</span>
                           )}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+                        </div>
+                      </div>
+                   ))}
+                </div>
               </div>
 
-              <div className="p-5 bg-emerald-50/30 flex justify-between items-center text-sm border-t border-emerald-50">
-                <div className="flex gap-4">
-                   <div className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Est. Delivery: <span className="text-slate-800 ml-1">{order.estimatedDeliveryTime}</span></div>
-                   <div className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Items: <span className="text-slate-800 ml-1">{order.items.reduce((s,i) => s + i.quantity, 0)}</span></div>
+              <div className="p-4 md:p-5 bg-emerald-50/40 flex justify-between items-center text-[10px] md:text-xs border-t border-emerald-50">
+                <div className="flex flex-col gap-1">
+                   <div className="uppercase font-black text-slate-400 tracking-widest">Est: <span className="text-slate-800 ml-1">{order.estimatedDeliveryTime}</span></div>
+                   <div className="uppercase font-black text-slate-400 tracking-widest">Units: <span className="text-slate-800 ml-1">{order.items.reduce((s,i) => s + i.quantity, 0)}</span></div>
                 </div>
-                <div className="flex items-center gap-3">
-                   <span className="text-[10px] uppercase font-bold text-slate-400 tracking-widest">Total Bill</span>
-                   <span className="text-lg font-bold text-emerald-700">Rs. {order.total}</span>
+                <div className="text-right">
+                   <span className="text-[9px] uppercase font-black text-slate-400 tracking-widest block mb-0.5">Total Payable</span>
+                   <span className="text-lg md:text-xl font-black text-emerald-700">Rs. {order.total}</span>
                 </div>
               </div>
             </div>
@@ -143,10 +131,10 @@ const OrderManagement: React.FC<OrderManagementProps> = ({ store }) => {
         })}
 
         {store.orders.length === 0 && (
-          <div className="text-center py-24 bg-white border-2 border-dashed border-slate-200 rounded-3xl text-slate-400">
+          <div className="text-center py-20 bg-white border-2 border-dashed border-slate-200 rounded-[2.5rem] text-slate-400">
             <i className="fa-solid fa-box-open text-5xl mb-6 opacity-20 block"></i>
-            <h3 className="text-lg font-bold text-slate-800">No active orders</h3>
-            <p className="text-sm">New orders placed by customers will appear here.</p>
+            <h3 className="text-lg font-black text-slate-800">No active orders</h3>
+            <p className="text-sm font-medium">New orders will appear here automatically.</p>
           </div>
         )}
       </div>
