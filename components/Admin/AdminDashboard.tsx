@@ -161,7 +161,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ store }) => {
                       </li>
                       <li className="flex items-center gap-2">
                         <i className="fa-solid fa-check text-emerald-500"></i>
-                        <span>Copy URL/Key from <strong>Settings > API</strong></span>
+                        <span>Copy URL/Key from <strong>Settings {' > '} API</strong></span>
                       </li>
                     </ul>
                   </div>

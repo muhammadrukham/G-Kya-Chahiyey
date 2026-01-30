@@ -157,7 +157,7 @@ const DeliveryManagement: React.FC<DeliveryManagementProps> = ({ store }) => {
               </div>
               
               <div className="p-3 bg-slate-50 rounded-lg border border-dashed text-[11px] text-slate-600">
-                <span className="font-bold">Logic:</span> Base Charge applies first. Time is {rule.baseMin}-{rule.baseMax} mins. If items &gt; {rule.threshold}, add {rule.additionalPerItem} mins for each extra item.
+                <span className="font-bold">Logic:</span> Base Charge applies first. Time is {rule.baseMin}-{rule.baseMax} mins. If items {'>'} {rule.threshold}, add {rule.additionalPerItem} mins for each extra item.
               </div>
             </div>
           ))}
