@@ -6,6 +6,7 @@ import ShopManagement from './ShopManagement';
 import OrderManagement from './OrderManagement';
 import LogoManagement from './LogoManagement';
 import DeliveryManagement from './DeliveryManagement';
+import { updateSupabaseConfig, resetSupabaseConfig } from '../../services/supabase';
 
 interface AdminDashboardProps {
   store: any;
@@ -13,6 +14,26 @@ interface AdminDashboardProps {
 
 const AdminDashboard: React.FC<AdminDashboardProps> = ({ store }) => {
   const [activeTab, setActiveTab] = useState<'orders' | 'shops' | 'users' | 'delivery' | 'settings'>('orders');
+  const [customUrl, setCustomUrl] = useState(localStorage.getItem('JKC_SUPABASE_URL') || '');
+  const [customKey, setCustomKey] = useState(localStorage.getItem('JKC_SUPABASE_KEY') || '');
+
+  const handleConnectCloud = () => {
+    if (!customUrl || !customKey) {
+      alert('Please enter both Supabase URL and Anon Key.');
+      return;
+    }
+    if (confirm('The app will reload to connect to the new database. Proceed?')) {
+      updateSupabaseConfig(customUrl, customKey);
+    }
+  };
+
+  const handleResetCloud = () => {
+    if (confirm('Reset to default demo database? App will reload.')) {
+      resetSupabaseConfig();
+    }
+  };
+
+  const isCustom = !!localStorage.getItem('JKC_SUPABASE_URL');
 
   return (
     <div className="h-full flex overflow-hidden">
@@ -71,32 +92,78 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ store }) => {
               
               <div className="bg-white p-8 rounded-3xl border border-blue-200 max-w-2xl shadow-sm overflow-hidden relative">
                 <div className="absolute top-0 right-0 p-4">
-                   <div className="bg-blue-100 text-blue-600 text-[10px] font-bold px-2 py-1 rounded-full uppercase">Cloud Ready</div>
+                   <div className={`text-[10px] font-bold px-2 py-1 rounded-full uppercase ${isCustom ? 'bg-emerald-100 text-emerald-600' : 'bg-blue-100 text-blue-600'}`}>
+                      {isCustom ? 'Private Cloud Active' : 'Demo Mode Active'}
+                   </div>
                 </div>
                 <h3 className="font-bold mb-4 text-slate-800 flex items-center gap-2">
                   <i className="fa-solid fa-earth-americas text-blue-500"></i>
-                  Multi-User Cloud Setup
+                  Supabase Cloud Control Center
                 </h3>
                 <p className="text-sm text-slate-600 mb-6 leading-relaxed">
-                  To allow multiple customers and the admin to see each other's data in real-time, you need a **Cloud Database**. The app is currently using your phone's memory (Local Storage).
+                  Connect your own **Supabase Project** to enable private multi-user sync. 
+                  All customer orders and accounts will be saved to your private database.
                 </p>
                 
-                <div className="space-y-4">
-                  <div className="bg-slate-50 p-4 rounded-2xl border border-slate-100">
-                    <h4 className="text-xs font-bold text-slate-800 mb-2 uppercase tracking-wider">Step 1: Create a Database</h4>
-                    <p className="text-xs text-slate-500">Sign up for a free account at <strong>Firebase.google.com</strong> or <strong>Supabase.com</strong>.</p>
-                  </div>
-                  
-                  <div className="bg-slate-50 p-4 rounded-2xl border border-slate-100">
-                    <h4 className="text-xs font-bold text-slate-800 mb-2 uppercase tracking-wider">Step 2: Connect Key</h4>
-                    <div className="flex gap-2">
-                       <input 
-                         type="password" 
-                         placeholder="Enter your Cloud API Key..." 
-                         className="flex-1 px-4 py-2 rounded-xl border border-slate-200 text-xs outline-none focus:ring-2 focus:ring-blue-500"
-                       />
-                       <button className="bg-blue-600 text-white px-4 py-2 rounded-xl text-xs font-bold">Connect</button>
+                <div className="space-y-6">
+                  <div className="grid grid-cols-1 gap-4">
+                    <div>
+                      <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2">Supabase Project URL</label>
+                      <input 
+                        type="text" 
+                        placeholder="https://xyz.supabase.co" 
+                        value={customUrl}
+                        onChange={(e) => setCustomUrl(e.target.value)}
+                        className="w-full px-4 py-3 rounded-xl border border-slate-200 text-sm outline-none focus:ring-2 focus:ring-blue-500 font-mono"
+                      />
                     </div>
+                    <div>
+                      <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2">Supabase Anon (Public) Key</label>
+                      <input 
+                        type="password" 
+                        placeholder="Your public anon key..." 
+                        value={customKey}
+                        onChange={(e) => setCustomKey(e.target.value)}
+                        className="w-full px-4 py-3 rounded-xl border border-slate-200 text-sm outline-none focus:ring-2 focus:ring-blue-500 font-mono"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="flex gap-3">
+                    <button 
+                      onClick={handleConnectCloud}
+                      className="flex-1 bg-blue-600 text-white py-3 rounded-xl font-bold hover:bg-blue-700 transition-all shadow-lg shadow-blue-100"
+                    >
+                      Save & Reconnect
+                    </button>
+                    {isCustom && (
+                      <button 
+                        onClick={handleResetCloud}
+                        className="px-6 bg-slate-100 text-slate-500 py-3 rounded-xl font-bold hover:bg-red-50 hover:text-red-500 transition-all"
+                      >
+                        Reset to Demo
+                      </button>
+                    )}
+                  </div>
+
+                  <div className="bg-slate-50 p-5 rounded-2xl border border-slate-100">
+                    <h4 className="text-xs font-black text-slate-800 mb-3 uppercase flex items-center gap-2">
+                      <i className="fa-solid fa-circle-info text-blue-400"></i> Setup Checklist
+                    </h4>
+                    <ul className="space-y-2 text-xs text-slate-500">
+                      <li className="flex items-center gap-2">
+                        <i className="fa-solid fa-check text-emerald-500"></i>
+                        <span>Create project at <strong>supabase.com</strong></span>
+                      </li>
+                      <li className="flex items-center gap-2">
+                        <i className="fa-solid fa-check text-emerald-500"></i>
+                        <span>Run the SQL Script in <strong>SQL Editor</strong></span>
+                      </li>
+                      <li className="flex items-center gap-2">
+                        <i className="fa-solid fa-check text-emerald-500"></i>
+                        <span>Copy URL/Key from <strong>Settings > API</strong></span>
+                      </li>
+                    </ul>
                   </div>
                 </div>
               </div>
@@ -104,14 +171,20 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ store }) => {
               <div className="bg-white p-8 rounded-3xl border border-slate-200 max-w-2xl shadow-sm">
                 <h3 className="font-bold mb-4 text-slate-800 flex items-center gap-2">
                   <i className="fa-solid fa-mobile-screen-button text-emerald-500"></i>
-                  Mobile App (APK) Generation
+                  Native App Build (Android/iOS)
                 </h3>
-                <p className="text-sm text-slate-600 mb-4">The code is optimized for native conversion using Capacitor.</p>
-                <div className="bg-slate-900 text-emerald-400 p-5 rounded-xl space-y-3 text-xs font-mono mb-6 overflow-x-auto">
-                  <p># Sync code to Android Studio</p>
+                <p className="text-sm text-slate-600 mb-4 leading-relaxed">
+                  This app is optimized for **Capacitor**. You can convert this code into a real APK or iOS app to share with your customers.
+                </p>
+                <div className="bg-slate-900 text-emerald-400 p-5 rounded-xl space-y-3 text-[11px] font-mono mb-6 overflow-x-auto shadow-inner">
+                  <p className="opacity-50"># Command sequence to build APK</p>
                   <p>npm run build</p>
                   <p>npx cap sync</p>
                   <p>npx cap open android</p>
+                </div>
+                <div className="flex items-center gap-2 text-xs text-slate-400 italic">
+                  <i className="fa-solid fa-lightbulb text-amber-400"></i>
+                  Note: Remember to update your logo in the Branding tab before building.
                 </div>
               </div>
             </div>
